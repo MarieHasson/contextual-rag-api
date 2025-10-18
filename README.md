@@ -59,7 +59,7 @@ The process can be broken down into four main stages, as implemented in the `rag
 
 1.  **Clone the repository:**
     ```bash
-    git clone <your-repo-url>
+    git clone https://github.com/MarieHasson/contextual-rag-api.git
     cd contextual-rag-api
     ```
 
@@ -91,4 +91,5 @@ The entire pipeline is demonstrated in the `notebooks/rag-pineline.ipynb` notebo
     * Embedding the chunks and storing them in ChromaDB.
     * Asking a question and seeing the retrieved context.
     * Getting the final answer from the LLM.
+
 
