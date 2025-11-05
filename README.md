@@ -105,10 +105,10 @@ The process is broken down into a series of modular components orchestrated by `
 
 3.  **Interact with your RAG API:**
     * **Option 1: LangServe Playground (Recommended)**
-        Open your browser and navigate to `http://localhost:8000/generative_ai/playground/`.
+        Open your browser and navigate to `http://localhost:3000/generative_ai/playground/`.
 
     * **Option 2: FastAPI Docs**
-        Explore the self-documenting API at `http://localhost:8000/docs`.
+        Explore the self-documenting API at `http://localhost:3000/docs`.
 
     * **Option 3: cURL**
         Use the custom `/rag/genai` endpoint from another terminal:
@@ -153,6 +153,7 @@ contextual-rag-api/
 ├── README.md              # (This file)
 └── requirements.txt       #
 ```
+
 
 
 
