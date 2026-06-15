@@ -1,13 +1,13 @@
-# Production-Ready RAG Pipeline with LangChain and FastAPI
+# RAG Pipeline with LangChain and FastAPI
 
 This project implements a basic complete, deployment-ready Retrieval-Augmented Generation (RAG) pipeline using Python, LangChain, FastAPI, LangServe and API LLMs.
-## 📜 Overview
+## Overview
 
 The core idea of this RAG pipeline is to enhance the knowledge of an LLM with custom, private data. Instead of relying solely on its pretrained knowledge, the model can look up relevant information from a provided set of documents before answering a question.
 
 This repository is structured as a production-ready application. It separates concerns into logical modules for data loading, vector storage, LLM interfacing, and the core RAG logic, all wrapped in a high-performance FastAPI server with LangServe.
 
-## ✨ Features
+## Features
 
 * **Deployment-Ready API**: Built with **FastAPI** and **LangServe**, providing an instant, production-grade API for your RAG chain.
 * **Built-in Playground**: Automatically includes a LangServe web interface for easy testing and interaction with your RAG chain.
@@ -20,7 +20,7 @@ This repository is structured as a production-ready application. It separates co
 ![API docs interface](assert/image_01.jpg)
 ![Question and Response](assert/response-example.jpg)
 
-## ⚙️ How It Works: The API Pipeline
+## How It Works: The API Pipeline
 
 The process is broken down into a series of modular components orchestrated by `src/app.py` and `src/rag/rag_system/main.py`.
 
@@ -54,7 +54,7 @@ The process is broken down into a series of modular components orchestrated by `
 * **PDF Parsing**: `PyMuPDF`
 * **Development**: Jupyter Notebook (for prototyping)
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 
