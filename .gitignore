@@ -11,7 +11,7 @@ note.txt
 pyproject.toml
 uv.lock
 
-data/vector_store/
+src/data_source/vector_db/
 
 # Environment variables
 .env

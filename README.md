@@ -1,160 +1,136 @@
-# RAG Pipeline with LangChain and FastAPI
+# Contextual RAG API
 
-This project implements a basic complete, deployment-ready Retrieval-Augmented Generation (RAG) pipeline using Python, LangChain, FastAPI, LangServe and API LLMs.
-## Overview
-
-The core idea of this RAG pipeline is to enhance the knowledge of an LLM with custom, private data. Instead of relying solely on its pretrained knowledge, the model can look up relevant information from a provided set of documents before answering a question.
-
-This repository is structured as a production-ready application. It separates concerns into logical modules for data loading, vector storage, LLM interfacing, and the core RAG logic, all wrapped in a high-performance FastAPI server with LangServe.
+Contextual RAG API is a document question-answering service built with Python, LangChain, FastAPI, LangServe, and Google Gemini. It indexes a local PDF collection, retrieves relevant passages for each question, and uses those passages to produce a concise answer.
 
 ## Features
 
-* **Deployment-Ready API**: Built with **FastAPI** and **LangServe**, providing an instant, production-grade API for your RAG chain.
-* **Built-in Playground**: Automatically includes a LangServe web interface for easy testing and interaction with your RAG chain.
-* **Modular Architecture**: Code is professionally organized into a `src` directory with clear separation of concerns (e.g., `file_loader`, `vectorstore`, `llm_models`), making it easy to maintain and extend.
-* **Persistent Vector Storage**: Uses an abstracted `VectorDB` class that supports both **ChromaDB** and **FAISS**. It automatically saves embeddings to disk and loads them on startup, saving you from re-processing files.
-* **Efficient PDF Ingestion**: Loads and processes multiple PDF files from a directory using the efficient `PyMuPDFLoader`.
-* **Modern LCEL Chain**: The RAG logic is built using the LangChain Expression Language (LCEL), not legacy classes, for a clear and composable pipeline.
-* **Extensible LLM Support**: Easily swap LLMs by adding a new class to `src/rag/base/llm_models.py`. **Google Gemini** is implemented by default.
+- FastAPI application with health-check and question-answering endpoints
+- LangServe routes and an interactive playground
+- PDF loading and configurable text chunking
+- Hugging Face sentence-transformer embeddings
+- Persistent Chroma vector storage, with FAISS support in the vector-store abstraction
+- Google Gemini generation through LangChain
+- Modular components for loading, indexing, retrieval, prompting, and serving
 
-![API docs interface](assert/image_01.jpg)
-![Question and Response](assert/response-example.jpg)
+## Architecture
 
-## How It Works: The API Pipeline
+1. `Loader` reads PDFs from `src/data_source/gen_ai/` and splits their text into chunks.
+2. `VectorDB` embeds the chunks with `sentence-transformers/all-MiniLM-L6-v2` and stores them in Chroma.
+3. The retriever selects the ten most similar chunks for each question.
+4. The RAG chain passes the retrieved context and question to Gemini.
+5. FastAPI exposes the chain through a standard JSON endpoint and LangServe routes.
 
-The process is broken down into a series of modular components orchestrated by `src/app.py` and `src/rag/rag_system/main.py`.
+The first application start creates the persistent vector index in `src/data_source/vector_db/`. Later starts reuse that index. Delete the index and restart the application after changing the source documents so that they are re-indexed.
 
-1.  **Ingestion & Processing**:
-    * The `Loader` class in `file_loader.py` scans the `src/data_source/gen_ai/` directory for PDF files.
-    * It uses `PyPDFLoader` to load documents and `PDFTextSplitter` (which wraps `RecursiveCharacterTextSplitter`) to break them into smaller chunks.
+## Requirements
 
-2.  **Indexing**:
-    * The `VectorDB` class in `vectorstore.py` checks if a persistent vector store already exists in `src/data_source/vector_db/`.
-    * If not, it uses `HuggingFaceEmbeddings` (`all-MiniLM-L6-v2`) to convert all text chunks into vectors.
-    * These embeddings are stored in a persistent **ChromaDB** (or **FAISS**) database. If the database *does* exist, this step is skipped, and the existing DB is loaded instantly.
+- Python 3.10 or newer
+- A Google Gemini API key
 
-3.  **Retrieval & Generation (The RAG Chain)**:
-    * The `build_rag_chain` function in `main.py` defines the core logic using LCEL.
-    * When a user asks a question, the `VectorDB.get_retriever()` fetches the most relevant document chunks (the "context").
-    * The `RAG` class in `rag_offline.py` formats the context and question into a detailed prompt.
-    * This prompt is sent to the `GeminiLLM`, which generates the final, context-aware answer.
+## Installation
 
-4.  **API Serving**:
-    * `app.py` initializes the FastAPI app and builds the RAG chain on startup.
-    * `add_routes` from `langserve` exposes this chain at the `/generative_ai` path, giving you API endpoints and a playground for free.
-    * A custom endpoint `/rag/genai` is also provided for standard POST requests.
+```bash
+git clone https://github.com/MarieHasson/contextual-rag-api.git
+cd contextual-rag-api
 
-## 🛠️ Technologies Used
-
-* **Core Framework**: LangChain, LangServe
-* **API Server**: FastAPI, Uvicorn
-* **Vector Database**: ChromaDB, FAISS
-* **Embedding Model**: `sentence-transformers` (`langchain_huggingface`)
-* **LLM**: Google Gemini (`langchain-google-genai`)
-* **PDF Parsing**: `PyMuPDF`
-* **Development**: Jupyter Notebook (for prototyping)
-
-## Getting Started
-
-### Prerequisites
-
-* Python 3.10+
-* A Google API Key for Gemini
-
-### Installation
-
-1.  **Clone the repository:**
-    ```bash
-    git clone [https://github.com/MarieHasson/contextual-rag-api.git](https://github.com/MarieHasson/contextual-rag-api.git)
-    cd contextual-rag-api
-    ```
-
-2.  **Create and activate a virtual environment:**
-    ```bash
-    python -m venv .venv
-    # On Windows
-    .venv\Scripts\activate
-    # On macOS/Linux
-    source .venv/bin/activate
-    ```
-
-3.  **Install the required dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-   
-
-4.  **Set up your API Key:**
-    Create a `.env` file in the root directory and add your Google Gemini API key:
-    ```
-    GEMINI_API_KEY="YOUR_GOOGLE_API_KEY"
-    ```
-   
-
-### Usage
-
-1.  **Add Your Documents:**
-    Place your PDF documents inside the `src/data_source/gen_ai/` directory. The application will process them on its first run.
-
-2.  **Run the Server:**
-    Start the FastAPI application using Uvicorn:
-    ```bash
-    uvicorn src.app:app --host 0.0.0.0 --port 3000 --reload
-    ```
-    On the first launch, this will build and save the vector database. This may take a few minutes. Subsequent launches will be instant.
-
-3.  **Interact with your RAG API:**
-    * **Option 1: LangServe Playground (Recommended)**
-        Open your browser and navigate to `http://localhost:3000/generative_ai/playground/`.
-
-    * **Option 2: FastAPI Docs**
-        Explore the self-documenting API at `http://localhost:3000/docs`.
-
-    * **Option 3: cURL**
-        Use the custom `/rag/genai` endpoint from another terminal:
-        ```bash
-        curl -X POST "http://localhost:8000/rag/genai" \
-             -H "Content-Type: application/json" \
-             -d '{"question": "How does a genetic algorithm work?"}'
-        ```
-
-
-### 📂Folder Structure
-Here's the project layout to help you find your way around:
-
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
+
+On Windows PowerShell, activate the environment with:
+
+```powershell
+.venv\Scripts\Activate.ps1
+```
+
+## Configuration
+
+Create a `.env` file in the repository root:
+
+```dotenv
+GEMINI_API_KEY=your_google_gemini_api_key
+```
+
+The application uses `gemini-2.5-flash` by default. The `.env` file and generated vector database are excluded from Git.
+
+## Add documents
+
+Place one or more PDF files in `src/data_source/gen_ai/`. A sample research-paper corpus is included. The optional downloader can retrieve the same example papers when run from that directory:
+
+```bash
+cd src/data_source/gen_ai
+python download.py
+cd ../../..
+```
+
+## Run the API
+
+Start the server from the repository root:
+
+```bash
+PYTHONPATH=src uvicorn src.app:app --host 0.0.0.0 --port 3000 --reload
+```
+
+Available interfaces:
+
+- Health check: `GET http://localhost:3000/check`
+- OpenAPI documentation: `http://localhost:3000/docs`
+- LangServe playground: `http://localhost:3000/generative_ai/playground/`
+- Question answering: `POST http://localhost:3000/rag/genai`
+
+Example request:
+
+```bash
+curl --request POST http://localhost:3000/rag/genai \
+  --header "Content-Type: application/json" \
+  --data '{"question":"What is instruction tuning?"}'
+```
+
+Example response:
+
+```json
+{
+  "answer": "Instruction tuning adapts a language model using examples that pair instructions with desired responses."
+}
+```
+
+## API preview
+
+![OpenAPI routes](assert/image_01.jpg)
+
+![Question request](assert/image_02.jpg)
+
+![Question response](assert/response-example.jpg)
+
+## Project structure
+
+```text
 contextual-rag-api/
-│
+├── assert/                         # API screenshots
+├── data/                           # Notebook sample data
+├── notebooks/                      # Exploration and prototyping notebooks
 ├── src/
-│   ├── app.py             # Main FastAPI server (entry point)
+│   ├── app.py                      # FastAPI application
 │   ├── data_source/
-│   │   ├── gen_ai/        # <-- Place your PDFs here (and download.py script)
-│   │   └── vector_db/     # (Git-ignored) Persistent vector store is saved here
+│   │   ├── gen_ai/                 # PDF corpus and download helper
+│   │   └── vector_db/              # Generated persistent index (ignored)
 │   └── rag/
 │       ├── base/
-│       │   └── llm_models.py  # LLM abstraction (Gemini)
+│       │   └── llm_models.py       # Gemini model adapter
 │       └── rag_system/
-│           ├── file_loader.py # Logic for loading & chunking files
-│           ├── main.py        # `build_rag_chain` function to wire everything up
-│           ├── rag_offline.py # The core RAG (LCEL) chain logic
-│           ├── rag_utils.py   # Utility functions (e.g., answer parsing)
-│           └── vectorstore.py # Manages (saves/loads) ChromaDB or FAISS
-│
-├── notebooks/
-│   ├── document.ipynb     # Notebook for exploring Langchain Documents
-│   └── rag-pineline.ipynb # The original notebook for prototyping
-│
-├── data/                  # (Legacy data from notebook prototyping)
-│   ├── pdf/               #
-│   └── text/              #
-│
-├── .env                   # (You need to create this) For API keys
-├── .gitignore             #
-├── README.md              # (This file)
-└── requirements.txt       #
+│           ├── file_loader.py      # PDF loading and chunking
+│           ├── main.py             # RAG-chain assembly
+│           ├── rag_offline.py      # Retrieval and generation chain
+│           ├── rag_utils.py        # Response parsing helper
+│           └── vectorstore.py      # Chroma and FAISS abstraction
+├── .gitignore
+├── README.md
+└── requirements.txt
 ```
 
+## Notes
 
-
-
-
+- The API builds the chain during application startup, so the Gemini key and PDF corpus must be available before the server starts.
+- CORS currently allows all origins. Restrict this setting before exposing the service publicly.
+- The bundled PDFs are sample retrieval content; replace or supplement them with documents appropriate for your use case.
